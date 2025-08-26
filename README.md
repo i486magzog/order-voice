@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Why am I building this app?
 
-## Getting Started
+I often go to McDonald’s, and many times I’ve seen staff—already extremely busy 
+and under pressure—having to call out order numbers repeatedly and wait until the customer comes. 
+I’m building this to see if an AI(LLM) that announces order numbers on their behalf could reduce 
+that burden and improve efficiency. I’m specifically using an LLM for scalability and to have 
+the flexibility to call out order numbers in more human-like, varied ways.
 
-First, run the development server:
+## Notes
+	1.	This app is being built as a test for DDB Group.
+	2.	The LLM will be implemented using WebLLM.
+	3.	TTS will use the Web Speech API.
+	4.	It will be built as a web app that runs in the browser.
+	5.	It uses Next.js and will be hosted on Vercel.
+	6.	Tailwind CSS and HeroUI will be used.
+	7.	The database will not be used.
+	8.	Authentication will be omitted.
 
+## Next.js Installation (using Typescript)
+[`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx create-next-app@latest
+# Need to install the following packages:
+# create-next-app@15.5.0
+# Ok to proceed? (y) 
+# ✔ What is your project named? … order-voice
+# ✔ Would you like to use TypeScript? … No / Yes
+# ✔ Which linter would you like to use? › ESLint
+# ✔ Would you like to use Tailwind CSS? … No / Yes
+# ✔ Would you like your code inside a `src/` directory? … No / Yes
+# ✔ Would you like to use App Router? (recommended) … No / Yes
+# ✔ Would you like to use Turbopack? (recommended) … No / Yes
+# ✔ Would you like to customize the import alias (`@/*` by default)? … No / Yes
+# ✔ What import alias would you like configured? … @/*
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
