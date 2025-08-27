@@ -70,7 +70,7 @@ export const placeOrderAction = async (menus?:string[]) => {
     })
 }
 
-const addOrUpdateOrder = async (orderNum:number, status:OrderStatus, menus?:string[]) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, createdAt: new Date().toISOString(), menus: menus ?? []} as Orders)
+const addOrUpdateOrder = async (orderNum:number, status:OrderStatus, menus?:string[]) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, updatedAt: new Date().toISOString(), menus: menus ?? []} as Orders)
 const removeOrder = async (orderNum:number, status:OrderStatus) => redis.json.del(`orders`, `$.${status}["${orderNum}"]`);
 const getAllOrdersFromDB = async (): Promise<OrderGroup | null> => redis.json.get<OrderGroup>(`orders`);
 const getAllCachedOrders = unstable_cache(
