@@ -32,12 +32,8 @@ export const getAllOrders = async () => getAllCachedOrders();
 export const removeAllOrders = async () => {
   return redis.json.del(`orders`)
     .then(() => renewAllCachedOrders())
-    .then(() => ({ isSuccess: true }))
     .catch(() => {
-      return {
-        isSuccess: false,
-        message: 'Failed to clear all orders'
-      }
+      throw new Error('Failed to clear all orders');
     })
 }
 export const changeOrderStatus = async (orderNum:number, from:OrderStatus, to:OrderStatus) => {
@@ -47,23 +43,34 @@ export const changeOrderStatus = async (orderNum:number, from:OrderStatus, to:Or
       return addOrUpdateOrder(orderNum, to)
     })
     .then(() => renewAllCachedOrders())
-    .then(() => {
-      return {
-        isSuccess: true,
-        message: getAllCachedOrders()
-      }
-    })
+    .then(() => getAllCachedOrders())
     .catch(() => {
-      return {
-        isSuccess: false,
-        message: 'Failed to change order status'
+      throw new Error('Failed to change order status');
+    })
+}
+export const placeOrder = async (menus?:string[]) => {
+  return redis.incr(`orderNum`)
+    .then((orderNum) => addOrUpdateOrder(orderNum, OrderStatus.PENDING, menus))
+    .then(() => renewAllCachedOrders())
+    .then(() => getAllCachedOrders())
+    .catch((e:Error) => {
+      // If there is no orders object, create it.
+      if(e.message.includes('new objects must be created at the root')){
+        const ordersInitJson = { pending: { }, inProgress: { }, readyToServe: { } } as Orders;
+        return redis.json.set(`orders`, `$`, ordersInitJson )
+          .then(() => renewAllCachedOrders())
+          .then(() => getAllCachedOrders())
+      }
+      else {
+        console.error(e.message);
+        throw new Error('Failed to place order');
       }
     })
 }
 
-const addOrUpdateOrder = async (orderNum:number, status:OrderStatus) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, createdAt: new Date().toISOString() } as Order)
+const addOrUpdateOrder = async (orderNum:number, status:OrderStatus, menus?:string[]) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, createdAt: new Date().toISOString(), menus: menus ?? []} as Order)
 const removeOrder = async (orderNum:number, status:OrderStatus) => redis.json.del(`orders`, `$.${status}["${orderNum}"]`);
-const getAllOrdersFromDB = async (): Promise<Orders | null> => redis.json.get(`orders`, '$');
+const getAllOrdersFromDB = async (): Promise<Orders | null> => redis.json.get<Orders>(`orders`);
 const getAllCachedOrders = unstable_cache(
   async () => {
     return getAllOrdersFromDB()
