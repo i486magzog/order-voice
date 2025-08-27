@@ -1,0 +1,74 @@
+'use server'
+
+import { Redis } from "@upstash/redis";
+import { revalidateTag } from 'next/cache';
+import { unstable_cache } from 'next/dist/server/web/spec-extension/unstable-cache';
+import { Order, Orders, OrderStatus } from "@/shared/types/global";
+
+const redis = Redis.fromEnv();
+
+export async function getPendingOrders() {
+  return getAllCachedOrders()
+    .then((orders:Orders | null) => {
+      if (!orders?.pending) return { }
+      return orders.pending
+    })
+}
+export async function getInProgressOrders() {
+  return getAllCachedOrders()
+    .then((orders:Orders | null) => {
+      if (!orders?.inProgress) return { }
+      return orders.inProgress
+    })
+}
+export async function getReadyToServeOrders() {
+  return getAllCachedOrders()
+    .then((orders:Orders | null) => {
+      if (!orders?.readyToServe) return { }
+      return orders.readyToServe
+    })
+}
+export const getAllOrders = async () => getAllCachedOrders();
+export const removeAllOrders = async () => {
+  return redis.json.del(`orders`)
+    .then(() => renewAllCachedOrders())
+    .then(() => ({ isSuccess: true }))
+    .catch(() => {
+      return {
+        isSuccess: false,
+        message: 'Failed to clear all orders'
+      }
+    })
+}
+export const changeOrderStatus = async (orderNum:number, from:OrderStatus, to:OrderStatus) => {
+  return removeOrder(orderNum, from)
+    .then(() =>{
+      if(to === OrderStatus.CANCELLED || to === OrderStatus.COMPLETED) return;
+      return addOrUpdateOrder(orderNum, to)
+    })
+    .then(() => renewAllCachedOrders())
+    .then(() => {
+      return {
+        isSuccess: true,
+        message: getAllCachedOrders()
+      }
+    })
+    .catch(() => {
+      return {
+        isSuccess: false,
+        message: 'Failed to change order status'
+      }
+    })
+}
+
+const addOrUpdateOrder = async (orderNum:number, status:OrderStatus) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, createdAt: new Date().toISOString() } as Order)
+const removeOrder = async (orderNum:number, status:OrderStatus) => redis.json.del(`orders`, `$.${status}["${orderNum}"]`);
+const getAllOrdersFromDB = async (): Promise<Orders | null> => redis.json.get(`orders`, '$');
+const getAllCachedOrders = unstable_cache(
+  async () => {
+    return getAllOrdersFromDB()
+  },
+  ['all-orders'],
+  { tags: ['all-orders'] }
+)
+const renewAllCachedOrders = async () => revalidateTag('all-orders');
