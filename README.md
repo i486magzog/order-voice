@@ -34,3 +34,18 @@ npx create-next-app@latest
 # ✔ What import alias would you like configured? … @/*
 ```
 
+## Vercel Hosting
+Create a project on Vercel and link it to the repository.
+```bash
+vercel login
+vercel link
+vercel env pull .env.development.local
+```
+
+### Vercel CI/CD Setting
+When a commit is pushed to the main repository, Vercel will build and deploy the app.
+Move `vercel` to `Vercel Project > Settings > Git > Ignored Build Step`
+```shell
+if [[ "$VERCEL_GIT_COMMIT_REF" == "main" ]]; then echo " [v] - Build can proceed"; exit 1; else echo " [-] - Build cancelled"; exit 0; fi;
+```
+
