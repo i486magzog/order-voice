@@ -1,6 +1,7 @@
-import { OrderManager } from "@/lib/order-manger";
+'use client'
+
 import { Queue } from "@/lib/queue";
-import { Orders, Order, OrderGroup, ITTS, ILLM, IOrderManager } from "@/shared/types/global";
+import { Orders, Order, ITTS, ILLM, TTSOptions } from "@/shared/types/global";
 import { Emitter } from "@/lib/emitter";
 import { WebLLM } from "./web-llm";
 import { WebSpeechTTS } from "./web-tts";
@@ -14,7 +15,7 @@ type CrewEvents = {
   error: unknown;
 };
 
-type SpeechCrewOptions = {
+export type SpeechCrewOptions = {
   /** Check if queues are empty (5000 = 5s) */
   idleCheckMs?: number;
   /** Wait after speech (300 = 300ms) */
@@ -23,23 +24,14 @@ type SpeechCrewOptions = {
   maxOrderQueue?: number;
 };
 
-type SpeechCrewArgs = {
-  // orderManager: IOrderManager;
-  llm?: ILLM;
-  tts?: ITTS;
-  options?: SpeechCrewOptions;
-};
-
-
 export class SpeechCrew {
   //
   // Singleton instance
   //
   static #instance: SpeechCrew;
   private constructor() {
-    // this.orderMgr = args.orderManager;
     this.llm = new WebLLM();
-    this.tts = new WebSpeechTTS({ lang: 'en-NZ' });
+    this.tts = WebSpeechTTS.instance;
     this.opts = {
       idleCheckMs: 2000,
       postSpeechDelayMs: 300,
@@ -49,6 +41,10 @@ export class SpeechCrew {
   public static get instance(): SpeechCrew {
     if (!SpeechCrew.#instance) {
       SpeechCrew.#instance = new SpeechCrew();
+      
+      if(process.env.NODE_ENV === 'development'){ 
+        console.log('SpeechCrew.instance created'); 
+      }
     }
     return SpeechCrew.#instance;
   }
@@ -77,43 +73,24 @@ export class SpeechCrew {
   on = this.events.on.bind(this.events);
   off = this.events.off.bind(this.events);
   /** 
-   * Optional: call before start() on iOS 
+   * call before start() on iOS 
    * @example 
-   * const crew = new SpeechCrew();
-   * crew.unlockAudio();
-   * crew.on('spoken', (line) => console.log('TTS:', line));
-   * crew.start();
    */
   unlockAudio() { this.tts.unlock?.(); }
-  start() {
+  /**
+   * Start the crew.
+   * @returns
+   */
+  start({scOpts, ttsOpts}: {scOpts?: SpeechCrewOptions, ttsOpts?: TTSOptions}) {
+    this.unlockAudio();
+
     if (this.running) return;
+    this.opts = { ...this.opts, ...scOpts };
+    this.tts.start(ttsOpts ?? {});
     this.running = true;
     this.events.emit('started', undefined as any);
     this.schedule4Text(0);
     this.schedule4Speech(0);
-  }
-  /** 
-   * Stop but keep queues. 
-   */
-  stop() {
-    this.running = false;
-    if (this.timer4Text) clearTimeout(this.timer4Text);
-    if (this.timer4Speech) clearTimeout(this.timer4Speech);
-    this.events.emit('stopped', undefined as any);
-  }
-  /** 
-   * Clear all queues 
-   */
-  clearQueues() {
-    this.orderQueue.clear();
-    this.sentenceQueue.clear();
-  }
-  /** 
-   * Enqueue an order 
-   */
-  enqueueOrder(order: Order) {
-    if (this.orderQueue.length >= this.opts.maxOrderQueue) return;
-    this.orderQueue.push(order);
   }
   /**
    * Assign an order to the crew in order to speak the order number.
@@ -134,49 +111,14 @@ export class SpeechCrew {
       return false;
     }
   }
-
-  private async makeSpeechText() {
-    try {
-      const order = this.orderQueue.shift();
-      if (!order) return false;
-
-      const text = await this.llm.makeSpeechText(order);
-      this.sentenceQueue.push(text);
-      this.events.emit('sentenceEnqueued', text);
-
-      return true;
-    } catch (e) {
-      this.events.emit('error', e);
-      return false;
-    }
-  }
-
-  private async speechText() {
-    try {
-      const text = this.sentenceQueue.shift();
-      if (!text) return false;
-      await this.tts.speak(text);
-      //
-      // Delay after speech
-      //
-      if (this.opts.postSpeechDelayMs > 0) {
-        await new Promise((r) => setTimeout(r, this.opts.postSpeechDelayMs));
-      }
-      this.events.emit('spoken', text);
-      return true;
-    } catch (e) {
-      this.events.emit('error', e);
-      return false;
-    }
-  }
   /**
    * Schedule the next tick for generating speech text.
    * @param ms The delay in milliseconds.
    */
   private schedule4Text(ms: number) {
     if (!this.running) return;
-    if (this.timer4Speech) clearTimeout(this.timer4Speech);
-    this.timer4Speech = setTimeout(() => this.tick4Text(), ms);
+    if (this.timer4Text) clearTimeout(this.timer4Text);
+    this.timer4Text = setTimeout(() => this.tick4Text(), ms);
   }
   /**
    * Schedule the next tick for speech.
@@ -184,8 +126,8 @@ export class SpeechCrew {
    */
   private schedule4Speech(ms: number) {
     if (!this.running) return;
-    if (this.timer4Text) clearTimeout(this.timer4Text);
-    this.timer4Text = setTimeout(() => this.tick4Speech(), ms);
+    if (this.timer4Speech) clearTimeout(this.timer4Speech);
+    this.timer4Speech = setTimeout(() => this.tick4Speech(), ms);
   }
   /**
    * 
@@ -200,17 +142,7 @@ export class SpeechCrew {
 
     this.lock = true;
     try {
-
-      // const dequeueCnt = this.orderQueue.length >= 3 ? 3 : this.orderQueue.length;
-      // const orderInfoArr = this.orderQueue.dequeue(dequeueCnt);
-      // await Promise.all(orderInfoArr.map((orderInfo) => this.llm.makeSpeechText(orderInfo)))
-      //   .then((texts) => texts.forEach((text) => this.sentenceQueue.push(text)) )
-      //   .catch((e) => {
-      //     this.events.emit('error', e);
-      //   });
-
-      while(this.makeSpeechText());
-      
+      while(this.orderQueue.length > 0 && await this.makeSpeechText());      
       const delay = this.orderQueue.length > 0 ? 0 : this.opts.idleCheckMs;
       this.schedule4Text(delay);
     } finally {
@@ -223,18 +155,67 @@ export class SpeechCrew {
    */
   private async tick4Speech() {
     if (!this.running) return;
-    if (this.lock) {
+    if (!this.tts.isActivated() || this.lock) {
       this.schedule4Speech(this.opts.idleCheckMs);
       return;
     }
 
     this.lock = true;
     try {
-      while(this.speechText());
+      while(this.sentenceQueue.length > 0 && await this.speechText());
       const delay = this.sentenceQueue.length > 0 ? 0 : this.opts.idleCheckMs;
       this.schedule4Speech(delay);
     } finally {
       this.lock = false;
     }
   }
+  /**
+   * 
+   * @returns 
+   */
+  private async makeSpeechText() {
+    try {
+      if(process.env.NODE_ENV === 'development') console.log('SpeechCrew.orderQueue: ', this.orderQueue.toArray());
+
+      const order = this.orderQueue.shift();
+      if (!order) return false;
+
+      const text = await this.llm.makeSpeechText(order);
+      this.sentenceQueue.push(text);
+      this.events.emit('sentenceEnqueued', text);
+
+      return true;
+
+    } catch (e) {
+      this.events.emit('error', e);
+      return false;
+    }
+  }
+  /**
+   * Speak the text.
+   * @returns A promise that resolves when the TTS is finished.
+   */
+  private async speechText() {
+    try {
+      if(process.env.NODE_ENV === 'development') console.log('SpeechCrew.sentenceQueue: ', this.sentenceQueue.toArray());
+      
+      const text = this.sentenceQueue.shift();
+      if (!text) return false;
+      await this.tts.speak(text);
+      //
+      // Delay after speech
+      //
+      if (this.opts.postSpeechDelayMs > 0) {
+        await new Promise((r) => setTimeout(r, this.opts.postSpeechDelayMs));
+      }
+      this.events.emit('spoken', text);
+      
+      return true;
+
+    } catch (e) {
+      this.events.emit('error', e);
+      return false;
+    }
+  }
+
 }
