@@ -6,6 +6,7 @@ import { Button } from "@headlessui/react"
 import { cn } from "@/utils/cn"
 import { OrderInfo, Orders, OrderStatus } from "@/shared/types/global"
 import { OrderManager } from "@/lib/order-manger"
+import { WebSpeechTTS } from "@/lib/web-tts"
 
 type DashboardProps = {
   orders: Orders | null
@@ -37,25 +38,27 @@ const getButtonActions = (status: OrderStatus) => {
 
 export function Dashboard({orders}: DashboardProps) {
   const orderManager = OrderManager.instance;
+  const tts = new WebSpeechTTS();
 
   const [readyToServeList, setReadyToServeList] = useState<ListItem[]>([])
   const [inProgressList, setInProgressList] = useState<ListItem[]>([])
   const [pendingList, setPendingList] = useState<ListItem[]>([])
-
+  /**
+   * The orders are changed via OrderManager.
+   */
   const handleAction = useCallback(({ data:listItem, actionKey }: { data: ListItem; actionKey: string }) => {
     orderManager.changeOrderStatus(parseInt(listItem.id), listItem.data as OrderStatus, actionKey as OrderStatus)
   }, [])
-
+  /**
+   * Convert type Orders to ListItems when props.orders or order via OrderManager are changed.
+   */
   const handleChangeOrders = useCallback((orders: Orders) => {
-    //
-    // Convert type OrderInfo to ListItem.
-    //
     function convertToListItem(order: OrderInfo, status: OrderStatus) {
       return {
         id: order.orderNum.toString(),
         label: order.orderNum.toString(),
         description: order.menus?.join(' • '),
-        meta: order.speechCnt ? <span className="text-[10px]">{order.speechCnt} min</span> : undefined,
+        // meta: order.speechCnt ? <span className="text-[10px]">{order.speechCnt}</span> : undefined,
         actions: getButtonActions(status),
         data: status
       }
@@ -66,14 +69,17 @@ export function Dashboard({orders}: DashboardProps) {
       setInProgressList(Object.values(orders?.inProgress ?? {}).map(o => convertToListItem(o, OrderStatus.IN_PROGRESS))),
       setPendingList(Object.values(orders?.pending ?? {}).map(o => convertToListItem(o, OrderStatus.PENDING)))
     ])
-  
-  }, [])
-
+  }, []);
+  //
+  // Update ListItems when props.orders are changed.
+  //
   useEffect(() => {
     if (!orders) return;
     handleChangeOrders(orders);
   }, [orders])
-
+  //
+  // Set up event listeners for OrderManager.
+  //
   useEffect(() => {
     const off = orderManager.onChange(handleChangeOrders);
     return () => { off(); };
@@ -110,12 +116,19 @@ export function Dashboard({orders}: DashboardProps) {
             "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
           )}
 
-          onClick={async (e) => {
-            e.stopPropagation()
-            await orderManager.placeOrder();
-          }}
+          onClick={async (e) => { await orderManager.placeOrder(); }}
         >
           Place Order
+        </Button>
+
+        <Button
+
+          onClick={async (e) => {
+            e.stopPropagation()
+            await tts.speak('안녕하세요', { lang: 'ko-KR' });
+          }}
+        >
+          Speech
         </Button>
       </div>
 
