@@ -25,3 +25,16 @@ export enum OrderStatus {
 }
 
 export const TWO_MIN = 2 * 60 * 1000;
+
+export interface IOrderManager {
+  pickupToSpeech(): Promise<Order | null>;
+}
+
+export interface ILLM {
+  makeSpeechText(order: Order): Promise<string>;
+}
+
+export interface ITTS {
+  speak(text: string): Promise<void>;
+  unlock?(): void;
+}
