@@ -6,37 +6,39 @@ import { unstable_cache } from 'next/dist/server/web/spec-extension/unstable-cac
 import { Order, Orders, OrderStatus } from "@/shared/types/global";
 
 const redis = Redis.fromEnv();
-
-export async function getPendingOrders() {
+/** TODO: If unused continue, remove it. */
+export const getPendingOrdersAction = async () => {
   return getAllCachedOrders()
     .then((orders:Orders | null) => {
       if (!orders?.pending) return { }
       return orders.pending
     })
 }
-export async function getInProgressOrders() {
+/** TODO: If unused continue, remove it. */
+export const getInProgressOrdersAction = async () => {
   return getAllCachedOrders()
     .then((orders:Orders | null) => {
       if (!orders?.inProgress) return { }
       return orders.inProgress
     })
 }
-export async function getReadyToServeOrders() {
+/** TODO: If unused continue, remove it. */
+export const getReadyToServeOrdersAction = async () => {
   return getAllCachedOrders()
     .then((orders:Orders | null) => {
       if (!orders?.readyToServe) return { }
       return orders.readyToServe
     })
 }
-export const getAllOrders = async () => getAllCachedOrders();
-export const removeAllOrders = async () => {
+export const getAllOrdersAction = async () => getAllCachedOrders();
+export const removeAllOrdersAction = async () => {
   return redis.json.del(`orders`)
     .then(() => renewAllCachedOrders())
     .catch(() => {
       throw new Error('Failed to clear all orders');
     })
 }
-export const changeOrderStatus = async (orderNum:number, from:OrderStatus, to:OrderStatus) => {
+export const changeOrderStatusAction = async (orderNum:number, from:OrderStatus, to:OrderStatus) => {
   return removeOrder(orderNum, from)
     .then(() =>{
       if(to === OrderStatus.CANCELLED || to === OrderStatus.COMPLETED) return;
@@ -48,7 +50,7 @@ export const changeOrderStatus = async (orderNum:number, from:OrderStatus, to:Or
       throw new Error('Failed to change order status');
     })
 }
-export const placeOrder = async (menus?:string[]) => {
+export const placeOrderAction = async (menus?:string[]) => {
   return redis.incr(`orderNum`)
     .then((orderNum) => addOrUpdateOrder(orderNum, OrderStatus.PENDING, menus))
     .then(() => renewAllCachedOrders())
