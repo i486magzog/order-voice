@@ -1,6 +1,6 @@
 import { OrderManager } from "@/lib/order-manger";
 import { Queue } from "@/lib/queue";
-import { Order, OrderInfo, Orders, ITTS, ILLM, IOrderManager } from "@/shared/types/global";
+import { Orders, Order, OrderGroup, ITTS, ILLM, IOrderManager } from "@/shared/types/global";
 import { Emitter } from "@/lib/emitter";
 import { WebLLM } from "./web-llm";
 import { WebSpeechTTS } from "./web-tts";
@@ -8,7 +8,7 @@ import { WebSpeechTTS } from "./web-tts";
 type CrewEvents = {
   started: void;
   stopped: void;
-  orderAssigned: Order;
+  orderAssigned: Orders;
   sentenceEnqueued: string;
   spoken: string;
   error: unknown;
@@ -58,7 +58,7 @@ export class SpeechCrew {
   private llm: ILLM;
   private tts: ITTS;
   private opts: Required<SpeechCrewOptions>;
-  private orderQueue = new Queue<OrderInfo>();
+  private orderQueue = new Queue<Order>();
   private sentenceQueue = new Queue<string>();
   private running = false;
   private events = new Emitter<CrewEvents>();
@@ -111,22 +111,22 @@ export class SpeechCrew {
   /** 
    * Enqueue an order 
    */
-  enqueueOrder(orderInfo: OrderInfo) {
+  enqueueOrder(order: Order) {
     if (this.orderQueue.length >= this.opts.maxOrderQueue) return;
-    this.orderQueue.push(orderInfo);
+    this.orderQueue.push(order);
   }
   /**
    * Assign an order to the crew in order to speak the order number.
-   * @param orderInfo 
+   * @param order 
    * @returns 
    */
-  assignOrder(orderInfo: OrderInfo) {
+  assignOrder(order: Order) {
     try {
       if (this.orderQueue.length >= this.opts.maxOrderQueue) return false;
-      if (!orderInfo) return false;
+      if (!order) return false;
 
-      this.orderQueue.push(orderInfo);
-      this.events.emit('orderAssigned', orderInfo);
+      this.orderQueue.push(order);
+      this.events.emit('orderAssigned', order);
 
       return true;
     } catch (e) {

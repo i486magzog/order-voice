@@ -1,8 +1,8 @@
-import { OrderInfo } from "@/shared/types/global";
+import { Order } from "@/shared/types/global";
 
 export class WebLLM {
-  async makeSpeechText(orderInfo: OrderInfo): Promise<string> {
-    const n = orderInfo.orderNum;
+  async makeSpeechText(order: Order): Promise<string> {
+    const n = order.orderNum;
     const base = `Order number ${n}, your order is ready.`;
     return base;
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import type { Order, OrderInfo, Orders, OrderStatus } from '@/shared/types/global';
+import type { Orders, Order, OrderGroup, OrderStatus } from '@/shared/types/global';
 import { Emitter } from '@/lib/emitter';
 import { 
   placeOrderAction, 
@@ -9,7 +9,7 @@ import {
 } from '@/server/actions/order';
 
 type OrderManagerEvents = {
-  changed: Orders;
+  changed: OrderGroup;
   error: unknown;
 };
 
@@ -29,35 +29,35 @@ export class OrderManager {
   // Private Properties
   //
   private emitter = new Emitter<OrderManagerEvents>();
-  private orders4Speech?: Order;
+  private orders4Speech?: Orders;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private idleCheckMs = 2000;
   private lock = false;
   //
   // Events
   //
-  onChange(fn: (orders: Orders) => void) { return this.emitter.on('changed', fn); }
-  private async changed(newOrders?:Orders) { 
-    const orders = newOrders || await this.getAllOrders();
-    this.emitter.emit('changed', orders); 
+  onChange(fn: (orderGroup: OrderGroup) => void) { return this.emitter.on('changed', fn); }
+  private async changed(newOrderGroup?:OrderGroup) { 
+    const orderGroup = newOrderGroup || await this.getAllOrders();
+    this.emitter.emit('changed', orderGroup); 
   }
   //
   // Communicate with server
   //
-  async getAllOrders(): Promise<Orders>{ 
-    const orders = (await getAllOrdersAction()) ?? ({ readyToServe: {}, inProgress: {}, pending: {} } as Orders)     
-    return orders;
+  async getAllOrders(): Promise<OrderGroup>{ 
+    const orderGroup = (await getAllOrdersAction()) ?? ({ readyToServe: {}, inProgress: {}, pending: {} } as OrderGroup)     
+    return orderGroup;
   }
   async changeOrderStatus(orderNum: number, from: OrderStatus, to: OrderStatus) {
     return changeOrderStatusAction(orderNum, from, to)
-      .then((orders) => orders && this.changed(orders) )
+      .then((orderGroup) => orderGroup && this.changed(orderGroup) )
       .catch((error) => {
         console.error('Error:', error);
       });
   }
   async placeOrder(menus?: string[]) {
     return placeOrderAction(menus)
-      .then((orders) => orders && this.changed(orders) )
+      .then((orderGroup) => orderGroup && this.changed(orderGroup) )
       .catch((error) => {
         console.error('Error:', error);
       });
@@ -90,13 +90,13 @@ export class OrderManager {
   }
 
   // TODO: Check and modify.
-  private setOrders4Speech(orders: Orders){
+  private setOrders4Speech(orders: OrderGroup){
     if(!orders.readyToServe){ this.orders4Speech = undefined; }
     const readyToServeOrders = Object.values(orders.readyToServe);
 
     readyToServeOrders.forEach((order) => { 
       if(!this.orders4Speech?.hasOwnProperty(order.orderNum)) {
-        if(!this.orders4Speech){ this.orders4Speech = {} as Order; }
+        if(!this.orders4Speech){ this.orders4Speech = {} as Orders; }
         this.orders4Speech[order.orderNum] = order;
       }
     })

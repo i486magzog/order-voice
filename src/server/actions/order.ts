@@ -3,31 +3,31 @@
 import { Redis } from "@upstash/redis";
 import { revalidateTag } from 'next/cache';
 import { unstable_cache } from 'next/dist/server/web/spec-extension/unstable-cache';
-import { Order, Orders, OrderStatus } from "@/shared/types/global";
+import { Orders, OrderGroup, OrderStatus } from "@/shared/types/global";
 
 const redis = Redis.fromEnv();
 /** TODO: If unused continue, remove it. */
 export const getPendingOrdersAction = async () => {
   return getAllCachedOrders()
-    .then((orders:Orders | null) => {
-      if (!orders?.pending) return { }
-      return orders.pending
+    .then((orderGroup:OrderGroup | null) => {
+      if (!orderGroup?.pending) return { }
+      return orderGroup.pending
     })
 }
 /** TODO: If unused continue, remove it. */
 export const getInProgressOrdersAction = async () => {
   return getAllCachedOrders()
-    .then((orders:Orders | null) => {
-      if (!orders?.inProgress) return { }
-      return orders.inProgress
+    .then((orderGroup:OrderGroup | null) => {
+      if (!orderGroup?.inProgress) return { }
+      return orderGroup.inProgress
     })
 }
 /** TODO: If unused continue, remove it. */
 export const getReadyToServeOrdersAction = async () => {
   return getAllCachedOrders()
-    .then((orders:Orders | null) => {
-      if (!orders?.readyToServe) return { }
-      return orders.readyToServe
+    .then((orderGroup:OrderGroup | null) => {
+      if (!orderGroup?.readyToServe) return { }
+      return orderGroup.readyToServe
     })
 }
 export const getAllOrdersAction = async () => getAllCachedOrders();
@@ -58,7 +58,7 @@ export const placeOrderAction = async (menus?:string[]) => {
     .catch((e:Error) => {
       // If there is no orders object, create it.
       if(e.message.includes('new objects must be created at the root')){
-        const ordersInitJson = { pending: { }, inProgress: { }, readyToServe: { } } as Orders;
+        const ordersInitJson = { pending: { }, inProgress: { }, readyToServe: { } } as OrderGroup;
         return redis.json.set(`orders`, `$`, ordersInitJson )
           .then(() => renewAllCachedOrders())
           .then(() => getAllCachedOrders())
@@ -70,9 +70,9 @@ export const placeOrderAction = async (menus?:string[]) => {
     })
 }
 
-const addOrUpdateOrder = async (orderNum:number, status:OrderStatus, menus?:string[]) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, createdAt: new Date().toISOString(), menus: menus ?? []} as Order)
+const addOrUpdateOrder = async (orderNum:number, status:OrderStatus, menus?:string[]) => redis.json.set(`orders`, `$.${status}["${orderNum}"]`, { orderNum, createdAt: new Date().toISOString(), menus: menus ?? []} as Orders)
 const removeOrder = async (orderNum:number, status:OrderStatus) => redis.json.del(`orders`, `$.${status}["${orderNum}"]`);
-const getAllOrdersFromDB = async (): Promise<Orders | null> => redis.json.get<Orders>(`orders`);
+const getAllOrdersFromDB = async (): Promise<OrderGroup | null> => redis.json.get<OrderGroup>(`orders`);
 const getAllCachedOrders = unstable_cache(
   async () => {
     return getAllOrdersFromDB()

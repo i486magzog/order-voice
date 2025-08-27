@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react"
 import { OpenedListBox, ListItem } from "./common/OpenedListBox"
 import { Button } from "@headlessui/react"
 import { cn } from "@/utils/cn"
-import { OrderInfo, Orders, OrderStatus } from "@/shared/types/global"
+import { Order, OrderGroup, OrderStatus } from "@/shared/types/global"
 import { OrderManager } from "@/lib/order-manger"
 import { WebSpeechTTS } from "@/lib/web-tts"
 
 type DashboardProps = {
-  orders: Orders | null
+  orderGroup: OrderGroup | null
 }
 
 const getButtonActions = (status: OrderStatus) => {
@@ -36,7 +36,7 @@ const getButtonActions = (status: OrderStatus) => {
   }
 }
 
-export function Dashboard({orders}: DashboardProps) {
+export function Dashboard({orderGroup}: DashboardProps) {
   const orderManager = OrderManager.instance;
   const tts = new WebSpeechTTS();
 
@@ -52,8 +52,8 @@ export function Dashboard({orders}: DashboardProps) {
   /**
    * Convert type Orders to ListItems when props.orders or order via OrderManager are changed.
    */
-  const handleChangeOrders = useCallback((orders: Orders) => {
-    function convertToListItem(order: OrderInfo, status: OrderStatus) {
+  const handleChangeOrderGroup = useCallback((orderGroup: OrderGroup) => {
+    function convertToListItem(order: Order, status: OrderStatus) {
       return {
         id: order.orderNum.toString(),
         label: order.orderNum.toString(),
@@ -65,23 +65,23 @@ export function Dashboard({orders}: DashboardProps) {
     }
 
     Promise.all([
-      setReadyToServeList(Object.values(orders?.readyToServe ?? {}).map(o => convertToListItem(o, OrderStatus.READY_TO_SERVE))),
-      setInProgressList(Object.values(orders?.inProgress ?? {}).map(o => convertToListItem(o, OrderStatus.IN_PROGRESS))),
-      setPendingList(Object.values(orders?.pending ?? {}).map(o => convertToListItem(o, OrderStatus.PENDING)))
+      setReadyToServeList(Object.values(orderGroup?.readyToServe ?? {}).map(o => convertToListItem(o, OrderStatus.READY_TO_SERVE))),
+      setInProgressList(Object.values(orderGroup?.inProgress ?? {}).map(o => convertToListItem(o, OrderStatus.IN_PROGRESS))),
+      setPendingList(Object.values(orderGroup?.pending ?? {}).map(o => convertToListItem(o, OrderStatus.PENDING)))
     ])
   }, []);
   //
   // Update ListItems when props.orders are changed.
   //
   useEffect(() => {
-    if (!orders) return;
-    handleChangeOrders(orders);
-  }, [orders])
+    if (!orderGroup) return;
+    handleChangeOrderGroup(orderGroup);
+  }, [orderGroup])
   //
   // Set up event listeners for OrderManager.
   //
   useEffect(() => {
-    const off = orderManager.onChange(handleChangeOrders);
+    const off = orderManager.onChange(handleChangeOrderGroup);
     return () => { off(); };
   }, [orderManager]);
 
