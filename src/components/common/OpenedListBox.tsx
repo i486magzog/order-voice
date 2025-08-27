@@ -26,6 +26,8 @@ export type ListItem = {
   meta?: React.ReactNode
   actions?: ListItemAction[]
   disabled?: boolean
+  /** invisible data */
+  data?: unknown
 }
 
 export type OpenedListBoxProps = {
@@ -90,6 +92,7 @@ export function OpenedListBox({
                       icon={a.icon}
                       label={a.label}
                       disabled={a.disabled}
+                      actionKey={a.key}
                       onAction={onAction} 
                     />
                 ))}

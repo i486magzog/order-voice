@@ -14,6 +14,7 @@ export type ActionButtonProps<T> = {
   icon?: React.ReactNode
   label: string
   disabled?: boolean
+  actionKey: string
   onAction?: (payload: ActionPayload<T>) => void
 }
 
@@ -22,6 +23,7 @@ export function ActionButton<T>({
   icon,
   label,
   disabled,
+  actionKey,
   onAction,
 }: ActionButtonProps<T>) {
   
@@ -30,7 +32,7 @@ export function ActionButton<T>({
       type="button"
       onClick={(e) => {
         e.stopPropagation()
-        if (!disabled) onAction?.({ data, actionKey: label })
+        if (!disabled) onAction?.({ data, actionKey })
       }}
       disabled={disabled}
       className={cn(
