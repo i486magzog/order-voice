@@ -1,10 +1,12 @@
+export type OrderInfo = {
+  orderNum: number
+  menus?: string[]
+  speechCnt?: number
+  createdAt: Date
+}
+
 export type Order = {
-  [orderNum:number]: {
-    orderNum: number
-    menus?: string[]
-    speechCnt?: number
-    createdAt: Date
-  }
+  [orderNum:number]: OrderInfo
 }
 
 export type Orders = {
@@ -18,6 +20,8 @@ export enum OrderStatus {
   PENDING = 'pending',
   IN_PROGRESS = 'inProgress',
   READY_TO_SERVE = 'readyToServe',
-  COMPLETED = 'completed'
+  COMPLETED = 'completed',
+  // READY_TO_ORDER = 'readyToOrder'
 }
-  
+
+export const TWO_MIN = 2 * 60 * 1000;
