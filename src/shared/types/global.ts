@@ -2,7 +2,7 @@ export type Order = {
   orderNum: number
   menus?: string[]
   speechCnt?: number
-  createdAt: Date
+  updatedAt: Date
 }
 
 export type Orders = {
@@ -33,7 +33,17 @@ export interface ILLM {
   makeSpeechText(order: Orders): Promise<string>;
 }
 
+export type TTSOptions = {
+  lang?: string; 
+  rate?: number; 
+  pitch?: number; 
+  volume?: number; 
+  voiceName?: string | undefined;
+};
+
 export interface ITTS {
   speak(text: string): Promise<void>;
-  unlock?(): void;
+  unlock(): void;
+  start(opts: TTSOptions): void;
+  isActivated(): boolean;
 }
