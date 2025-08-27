@@ -6,7 +6,6 @@ import { Button } from "@headlessui/react"
 import { cn } from "@/utils/cn"
 import { Order, OrderGroup, OrderStatus } from "@/shared/types/global"
 import { OrderManager } from "@/lib/order-manger"
-import { WebSpeechTTS } from "@/lib/web-tts"
 
 type DashboardProps = {
   orderGroup: OrderGroup | null
@@ -38,7 +37,6 @@ const getButtonActions = (status: OrderStatus) => {
 
 export function Dashboard({orderGroup}: DashboardProps) {
   const orderManager = OrderManager.instance;
-  const tts = new WebSpeechTTS();
 
   const [readyToServeList, setReadyToServeList] = useState<ListItem[]>([])
   const [inProgressList, setInProgressList] = useState<ListItem[]>([])
@@ -81,6 +79,24 @@ export function Dashboard({orderGroup}: DashboardProps) {
   // Set up event listeners for OrderManager.
   //
   useEffect(() => {
+    orderManager.start({
+      omOpts: {
+        idleCheckMs: 2000,
+        repeatDelayMs: 1000 * 60 * .3,
+      },
+      scOpts: {
+        idleCheckMs: 2000,
+        postSpeechDelayMs: 300,
+        maxOrderQueue: 20,
+      },
+      ttsOpts: {
+        lang: 'en-US',
+        rate: 1,
+        pitch: 1,
+        volume: 1,
+        voiceName: undefined,
+      }
+    });
     const off = orderManager.onChange(handleChangeOrderGroup);
     return () => { off(); };
   }, [orderManager]);
@@ -119,16 +135,6 @@ export function Dashboard({orderGroup}: DashboardProps) {
           onClick={async (e) => { await orderManager.placeOrder(); }}
         >
           Place Order
-        </Button>
-
-        <Button
-
-          onClick={async (e) => {
-            e.stopPropagation()
-            await tts.speak('안녕하세요', { lang: 'ko-KR' });
-          }}
-        >
-          Speech
         </Button>
       </div>
 
