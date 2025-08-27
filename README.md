@@ -12,8 +12,8 @@ the flexibility to call out order numbers in more human-like, varied ways.
 	3.	TTS will use the Web Speech API.
 	4.	It will be built as a web app that runs in the browser.
 	5.	It uses Next.js and will be hosted on Vercel.
-	6.	Tailwind CSS and HeroUI will be used.
-	7.	The database will not be used.
+	6.	Tailwind CSS and HeadlessUI will be used.
+	7.	Redis KV DB will be used to save money.
 	8.	Authentication will be omitted.
 
 ## Next.js Installation (using Typescript)
