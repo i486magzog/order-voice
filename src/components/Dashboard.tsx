@@ -6,7 +6,6 @@ import { Button } from "@headlessui/react"
 import { cn } from "@/utils/cn"
 import { Order, OrderGroup, OrderStatus } from "@/shared/types/global"
 import { OrderManager } from "@/lib/order-manger"
-import { InitProgress } from "@/lib/web-llm"
 import ModelLoader from "./common/ModelLoader"
 
 type DashboardProps = {
@@ -145,7 +144,7 @@ export function Dashboard({orderGroup}: DashboardProps) {
               "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
             )}
 
-            onClick={async (e) => { await orderManager.placeOrder(); }}
+            onClick={async () => { await orderManager.placeOrder(); }}
           >
             Place Order
           </Button>

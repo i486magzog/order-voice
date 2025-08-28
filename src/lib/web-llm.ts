@@ -1,7 +1,7 @@
 'use client'
 
 import { Order } from "@/shared/types/global";
-import { ChatCompletionMessageParam, CreateMLCEngine, CreateWebWorkerMLCEngine, MLCEngine } from "@mlc-ai/web-llm";
+import { ChatCompletionMessageParam, InitProgressReport, MLCEngine } from "@mlc-ai/web-llm";
 /**
  * The WebLLM engine.
  */
@@ -23,7 +23,7 @@ export async function initWebLLM(
 ) {
   try {
     engine = new MLCEngine({
-      initProgressCallback: (rep: any) => {
+      initProgressCallback: (rep: InitProgressReport) => {
         const ratio = typeof rep === "number" 
           ? rep 
           : typeof rep?.progress === "number" 

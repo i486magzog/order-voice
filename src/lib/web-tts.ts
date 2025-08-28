@@ -153,7 +153,7 @@ export class WebSpeechTTS {
     const synth = window.speechSynthesis;
     return new Promise<void>((resolve, reject) => {
       utterance.onend = () => resolve();
-      utterance.onerror = (e) => reject((e as any).error || e);
+      utterance.onerror = (e:SpeechSynthesisErrorEvent) => reject(e.error || e);
       try {
         synth.speak(utterance);
       } catch (err) {

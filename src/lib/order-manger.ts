@@ -1,6 +1,6 @@
 'use client';
 
-import type { Orders, Order, OrderGroup, OrderStatus, TTSOptions } from '@/shared/types/global';
+import type { Orders, OrderGroup, OrderStatus, TTSOptions } from '@/shared/types/global';
 import { Emitter } from '@/lib/emitter';
 import { 
   placeOrderAction, 

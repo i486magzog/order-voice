@@ -93,7 +93,7 @@ export class SpeechCrew {
     this.tts.start(ttsOpts ?? {});
     
     this.running = true;
-    this.events.emit('started', undefined as any);
+    this.events.emit('started', undefined);
 
     this.schedule4Text(0);
     this.schedule4Speech(0);
