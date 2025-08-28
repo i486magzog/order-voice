@@ -1,18 +1,18 @@
-export type OrderInfo = {
+export type Order = {
   orderNum: number
   menus?: string[]
   speechCnt?: number
-  createdAt: Date
-}
-
-export type Order = {
-  [orderNum:number]: OrderInfo
+  updatedAt: Date
 }
 
 export type Orders = {
-  readyToServe: Order
-  inProgress: Order
-  pending: Order
+  [orderNum:number]: Order
+}
+
+export type OrderGroup = {
+  readyToServe: Orders
+  inProgress: Orders
+  pending: Orders
 }
 
 export enum OrderStatus {
@@ -21,7 +21,29 @@ export enum OrderStatus {
   IN_PROGRESS = 'inProgress',
   READY_TO_SERVE = 'readyToServe',
   COMPLETED = 'completed',
-  // READY_TO_ORDER = 'readyToOrder'
 }
 
 export const TWO_MIN = 2 * 60 * 1000;
+
+export interface IOrderManager {
+  pickupToSpeech(): Promise<Orders | null>;
+}
+
+export interface ILLM {
+  makeSpeechText(order: Orders): Promise<string>;
+}
+
+export type TTSOptions = {
+  lang?: string; 
+  rate?: number; 
+  pitch?: number; 
+  volume?: number; 
+  voiceName?: string | undefined;
+};
+
+export interface ITTS {
+  speak(text: string): Promise<void>;
+  unlock(): void;
+  start(opts: TTSOptions): void;
+  isActivated(): boolean;
+}

@@ -168,7 +168,7 @@ function MoreButton({
                     'dark:hover:bg-gray-700 dark:active:bg-gray-600',
                     'disabled:opacity-50'
                   )}
-                  onClick={(e) => onAction?.({ data: item, actionKey: a.key })}
+                  onClick={() => onAction?.({ data: item, actionKey: a.key })}
                   disabled={a.disabled}
                 >
                   {a.label}

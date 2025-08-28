@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react"
 import { OpenedListBox, ListItem } from "./common/OpenedListBox"
 import { Button } from "@headlessui/react"
 import { cn } from "@/utils/cn"
-import { OrderInfo, Orders, OrderStatus } from "@/shared/types/global"
+import { Order, OrderGroup, OrderStatus } from "@/shared/types/global"
 import { OrderManager } from "@/lib/order-manger"
+import ModelLoader from "./common/ModelLoader"
 
 type DashboardProps = {
-  orders: Orders | null
+  orderGroup: OrderGroup | null
 }
 
 const getButtonActions = (status: OrderStatus) => {
@@ -35,90 +36,122 @@ const getButtonActions = (status: OrderStatus) => {
   }
 }
 
-export function Dashboard({orders}: DashboardProps) {
+export function Dashboard({orderGroup}: DashboardProps) {
   const orderManager = OrderManager.instance;
-
   const [readyToServeList, setReadyToServeList] = useState<ListItem[]>([])
   const [inProgressList, setInProgressList] = useState<ListItem[]>([])
   const [pendingList, setPendingList] = useState<ListItem[]>([])
-
+  const [modelLoading, setModelLoading] = useState(true);
+  const [noLLM, setNoLLM] = useState(false);
+  /**
+   * The orders are changed via OrderManager.
+   */
   const handleAction = useCallback(({ data:listItem, actionKey }: { data: ListItem; actionKey: string }) => {
     orderManager.changeOrderStatus(parseInt(listItem.id), listItem.data as OrderStatus, actionKey as OrderStatus)
   }, [])
-
-  const handleChangeOrders = useCallback((orders: Orders) => {
-    //
-    // Convert type OrderInfo to ListItem.
-    //
-    function convertToListItem(order: OrderInfo, status: OrderStatus) {
+  /**
+   * Convert type Orders to ListItems when props.orders or order via OrderManager are changed.
+   */
+  const handleChangeOrderGroup = useCallback((orderGroup: OrderGroup) => {
+    function convertToListItem(order: Order, status: OrderStatus) {
       return {
         id: order.orderNum.toString(),
         label: order.orderNum.toString(),
         description: order.menus?.join(' • '),
-        meta: order.speechCnt ? <span className="text-[10px]">{order.speechCnt} min</span> : undefined,
+        // meta: order.speechCnt ? <span className="text-[10px]">{order.speechCnt}</span> : undefined,
         actions: getButtonActions(status),
         data: status
       }
     }
 
     Promise.all([
-      setReadyToServeList(Object.values(orders?.readyToServe ?? {}).map(o => convertToListItem(o, OrderStatus.READY_TO_SERVE))),
-      setInProgressList(Object.values(orders?.inProgress ?? {}).map(o => convertToListItem(o, OrderStatus.IN_PROGRESS))),
-      setPendingList(Object.values(orders?.pending ?? {}).map(o => convertToListItem(o, OrderStatus.PENDING)))
+      setReadyToServeList(Object.values(orderGroup?.readyToServe ?? {}).map(o => convertToListItem(o, OrderStatus.READY_TO_SERVE))),
+      setInProgressList(Object.values(orderGroup?.inProgress ?? {}).map(o => convertToListItem(o, OrderStatus.IN_PROGRESS))),
+      setPendingList(Object.values(orderGroup?.pending ?? {}).map(o => convertToListItem(o, OrderStatus.PENDING)))
     ])
-  
-  }, [])
-
+  }, []);
+  //
+  // Update ListItems when props.orders are changed.
+  //
   useEffect(() => {
-    if (!orders) return;
-    handleChangeOrders(orders);
-  }, [orders])
-
+    if (!orderGroup) return;
+    handleChangeOrderGroup(orderGroup);
+  }, [orderGroup])
+  //
+  // Set up event listeners for OrderManager.
+  //
   useEffect(() => {
-    const off = orderManager.onChange(handleChangeOrders);
+    if(modelLoading) return;
+
+    orderManager.start({
+      omOpts: {
+        idleCheckMs: 2000,
+        repeatDelayMs: 1000 * 60 * .5,
+      },
+      scOpts: {
+        idleCheckMs: 2000,
+        postSpeechDelayMs: 300,
+        maxOrderQueue: 20,
+        noLLM: noLLM,
+      },
+      ttsOpts: {
+        lang: 'en-US',
+        rate: 1,
+        pitch: 1,
+        volume: 1,
+        voiceName: undefined,
+      }
+    });
+    const off = orderManager.onChange(handleChangeOrderGroup);
     return () => { off(); };
-  }, [orderManager]);
+  }, [orderManager, modelLoading]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-
-      <h1 className="text-xl font-semibold">Ready to serve</h1>
-      <OpenedListBox
-        items={readyToServeList}
-        onAction={handleAction}
-        maxInlineActions={3}
+    <>
+    { (modelLoading && !noLLM)
+    ? <ModelLoader 
+        onSkip={() => { setNoLLM(true); setModelLoading(false) }}
+        onProgress={(percentage) => { setModelLoading(percentage < 100) }} 
       />
+    : <div className="mx-auto max-w-2xl space-y-4 p-6">
 
-      <h1 className="text-xl font-semibold">In Progress</h1>
-      <OpenedListBox
-        items={inProgressList}
-        onAction={handleAction}
-        maxInlineActions={3}
-      />
+        <h1 className="text-xl font-semibold">Ready to serve</h1>
+        <OpenedListBox
+          items={readyToServeList}
+          onAction={handleAction}
+          maxInlineActions={3}
+        />
 
-      <h1 className="text-xl font-semibold">Pending</h1>
-      <OpenedListBox
-        items={pendingList}
-        onAction={handleAction}
-        maxInlineActions={3}
-      />
+        <h1 className="text-xl font-semibold">In Progress</h1>
+        <OpenedListBox
+          items={inProgressList}
+          onAction={handleAction}
+          maxInlineActions={3}
+        />
 
-      <div className="flex justify-end">
-        <Button
-          className={cn("rounded bg-sky-600 px-4 py-2 text-sm text-white",
-            "data-active:bg-sky-700 data-hover:bg-sky-500",
-            "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
-          )}
+        <h1 className="text-xl font-semibold">Pending</h1>
+        <OpenedListBox
+          items={pendingList}
+          onAction={handleAction}
+          maxInlineActions={3}
+        />
 
-          onClick={async (e) => {
-            e.stopPropagation()
-            await orderManager.placeOrder();
-          }}
-        >
-          Place Order
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            className={cn("rounded bg-sky-600 px-4 py-2 text-sm text-white",
+              "hover:cursor-pointer",
+              "data-active:bg-sky-700 data-hover:bg-sky-500",
+              "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
+            )}
+
+            onClick={async () => { await orderManager.placeOrder(); }}
+          >
+            Place Order
+          </Button>
+        </div>
+
       </div>
-
-    </div>
+    }
+    </>
   )
 }
