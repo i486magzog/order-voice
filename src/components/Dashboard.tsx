@@ -6,6 +6,8 @@ import { Button } from "@headlessui/react"
 import { cn } from "@/utils/cn"
 import { Order, OrderGroup, OrderStatus } from "@/shared/types/global"
 import { OrderManager } from "@/lib/order-manger"
+import { InitProgress } from "@/lib/web-llm"
+import ModelLoader from "./common/ModelLoader"
 
 type DashboardProps = {
   orderGroup: OrderGroup | null
@@ -37,10 +39,11 @@ const getButtonActions = (status: OrderStatus) => {
 
 export function Dashboard({orderGroup}: DashboardProps) {
   const orderManager = OrderManager.instance;
-
   const [readyToServeList, setReadyToServeList] = useState<ListItem[]>([])
   const [inProgressList, setInProgressList] = useState<ListItem[]>([])
   const [pendingList, setPendingList] = useState<ListItem[]>([])
+  const [modelLoading, setModelLoading] = useState(true);
+  const [noLLM, setNoLLM] = useState(false);
   /**
    * The orders are changed via OrderManager.
    */
@@ -79,15 +82,18 @@ export function Dashboard({orderGroup}: DashboardProps) {
   // Set up event listeners for OrderManager.
   //
   useEffect(() => {
+    if(modelLoading) return;
+
     orderManager.start({
       omOpts: {
         idleCheckMs: 2000,
-        repeatDelayMs: 1000 * 60 * .3,
+        repeatDelayMs: 1000 * 60 * .5,
       },
       scOpts: {
         idleCheckMs: 2000,
         postSpeechDelayMs: 300,
         maxOrderQueue: 20,
+        noLLM: noLLM,
       },
       ttsOpts: {
         lang: 'en-US',
@@ -99,45 +105,53 @@ export function Dashboard({orderGroup}: DashboardProps) {
     });
     const off = orderManager.onChange(handleChangeOrderGroup);
     return () => { off(); };
-  }, [orderManager]);
+  }, [orderManager, modelLoading]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
-
-      <h1 className="text-xl font-semibold">Ready to serve</h1>
-      <OpenedListBox
-        items={readyToServeList}
-        onAction={handleAction}
-        maxInlineActions={3}
+    <>
+    { (modelLoading && !noLLM)
+    ? <ModelLoader 
+        onSkip={() => { setNoLLM(true); setModelLoading(false) }}
+        onProgress={(percentage) => { setModelLoading(percentage < 100) }} 
       />
+    : <div className="mx-auto max-w-2xl space-y-4 p-6">
 
-      <h1 className="text-xl font-semibold">In Progress</h1>
-      <OpenedListBox
-        items={inProgressList}
-        onAction={handleAction}
-        maxInlineActions={3}
-      />
+        <h1 className="text-xl font-semibold">Ready to serve</h1>
+        <OpenedListBox
+          items={readyToServeList}
+          onAction={handleAction}
+          maxInlineActions={3}
+        />
 
-      <h1 className="text-xl font-semibold">Pending</h1>
-      <OpenedListBox
-        items={pendingList}
-        onAction={handleAction}
-        maxInlineActions={3}
-      />
+        <h1 className="text-xl font-semibold">In Progress</h1>
+        <OpenedListBox
+          items={inProgressList}
+          onAction={handleAction}
+          maxInlineActions={3}
+        />
 
-      <div className="flex justify-end">
-        <Button
-          className={cn("rounded bg-sky-600 px-4 py-2 text-sm text-white",
-            "data-active:bg-sky-700 data-hover:bg-sky-500",
-            "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
-          )}
+        <h1 className="text-xl font-semibold">Pending</h1>
+        <OpenedListBox
+          items={pendingList}
+          onAction={handleAction}
+          maxInlineActions={3}
+        />
 
-          onClick={async (e) => { await orderManager.placeOrder(); }}
-        >
-          Place Order
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            className={cn("rounded bg-sky-600 px-4 py-2 text-sm text-white",
+              "data-active:bg-sky-700 data-hover:bg-sky-500",
+              "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
+            )}
+
+            onClick={async (e) => { await orderManager.placeOrder(); }}
+          >
+            Place Order
+          </Button>
+        </div>
+
       </div>
-
-    </div>
+    }
+    </>
   )
 }

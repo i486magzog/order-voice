@@ -95,7 +95,10 @@ export class WebSpeechTTS {
           }
 
           if (this.activated) resolve();
-          else setTimeout(check, 50);
+          else {
+            enable();
+            setTimeout(check, 50);
+          }
         };
         check();
       });

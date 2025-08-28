@@ -4,6 +4,7 @@ import { Queue } from "@/lib/queue";
 import { Orders, Order, ITTS, ILLM, TTSOptions } from "@/shared/types/global";
 import { Emitter } from "@/lib/emitter";
 import { WebLLM } from "./web-llm";
+import { NoLLM } from "./no-llm";
 import { WebSpeechTTS } from "./web-tts";
 
 type CrewEvents = {
@@ -22,6 +23,8 @@ export type SpeechCrewOptions = {
   postSpeechDelayMs?: number;
   /** Limit of OrderQueue */
   maxOrderQueue?: number;
+  /** Skip LLM */
+  noLLM?: boolean;
 };
 
 export class SpeechCrew {
@@ -30,12 +33,11 @@ export class SpeechCrew {
   //
   static #instance: SpeechCrew;
   private constructor() {
-    this.llm = new WebLLM();
-    this.tts = WebSpeechTTS.instance;
     this.opts = {
       idleCheckMs: 2000,
       postSpeechDelayMs: 300,
       maxOrderQueue: 20,
+      noLLM: false,
     };
   }
   public static get instance(): SpeechCrew {
@@ -51,8 +53,8 @@ export class SpeechCrew {
   //
   // Private Properties
   //
-  private llm: ILLM;
-  private tts: ITTS;
+  private llm?: ILLM;
+  private tts?: ITTS;
   private opts: Required<SpeechCrewOptions>;
   private orderQueue = new Queue<Order>();
   private sentenceQueue = new Queue<string>();
@@ -76,19 +78,23 @@ export class SpeechCrew {
    * call before start() on iOS 
    * @example 
    */
-  unlockAudio() { this.tts.unlock?.(); }
+  unlockAudio() { this.tts?.unlock?.(); }
   /**
    * Start the crew.
    * @returns
    */
   start({scOpts, ttsOpts}: {scOpts?: SpeechCrewOptions, ttsOpts?: TTSOptions}) {
-    this.unlockAudio();
-
     if (this.running) return;
     this.opts = { ...this.opts, ...scOpts };
+
+    this.llm = this.opts.noLLM ? new NoLLM() : new WebLLM();
+    this.tts = WebSpeechTTS.instance;
+    this.unlockAudio();
     this.tts.start(ttsOpts ?? {});
+    
     this.running = true;
     this.events.emit('started', undefined as any);
+
     this.schedule4Text(0);
     this.schedule4Speech(0);
   }
@@ -154,8 +160,7 @@ export class SpeechCrew {
    * @returns 
    */
   private async tick4Speech() {
-    if (!this.running) return;
-    if (!this.tts.isActivated() || this.lock) {
+    if (!this.running) return;    if (!this.tts?.isActivated() || this.lock) {
       this.schedule4Speech(this.opts.idleCheckMs);
       return;
     }
@@ -175,14 +180,18 @@ export class SpeechCrew {
    */
   private async makeSpeechText() {
     try {
-      if(process.env.NODE_ENV === 'development') console.log('SpeechCrew.orderQueue: ', this.orderQueue.toArray());
+      if(process.env.NODE_ENV === 'development'){
+        console.log('SpeechCrew.orderQueue: ', this.orderQueue.toArray());
+      }
 
       const order = this.orderQueue.shift();
       if (!order) return false;
 
-      const text = await this.llm.makeSpeechText(order);
-      this.sentenceQueue.push(text);
-      this.events.emit('sentenceEnqueued', text);
+      const text = await this.llm?.makeSpeechText(order);
+      if(text){
+        this.sentenceQueue.push(text);
+        this.events.emit('sentenceEnqueued', text);
+      }
 
       return true;
 
@@ -197,11 +206,13 @@ export class SpeechCrew {
    */
   private async speechText() {
     try {
-      if(process.env.NODE_ENV === 'development') console.log('SpeechCrew.sentenceQueue: ', this.sentenceQueue.toArray());
+      if(process.env.NODE_ENV === 'development'){
+        console.log('SpeechCrew.sentenceQueue: ', this.sentenceQueue.toArray());
+      }
       
       const text = this.sentenceQueue.shift();
       if (!text) return false;
-      await this.tts.speak(text);
+      await this.tts?.speak(text);
       //
       // Delay after speech
       //
