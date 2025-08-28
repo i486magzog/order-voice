@@ -15,6 +15,11 @@ the flexibility to call out order numbers in more human-like, varied ways.
 	6.	Tailwind CSS and HeadlessUI will be used.
 	7.	Redis KV DB will be used to save money.
 	8.	Authentication will be omitted.
+<br>
+
+## Vercel Hosting URL
+### [https://order-voice.vercel.app](https://order-voice.vercel.app)
+<br>
 
 ## Initial Concept Diagram
 ### Original Link: [Miro](https://miro.com/app/live-embed/uXjVJQbXx44=/?embedMode=view_only_without_ui&moveToViewport=-5177%2C-1775%2C5706%2C5213&embedId=944691158758)
