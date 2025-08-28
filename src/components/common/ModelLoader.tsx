@@ -54,7 +54,7 @@ export default function ModelLoader({ onSkip, onProgress }: { onSkip: () => void
         <div className="w-full text-sm text-gray-600 text-right">{label2} {percentage}%</div>
         <div className="w-full flex justify-end">
           <Button
-            className="rounded bg-sky-600 px-4 py-2 my-10 text-sm text-white data-active:bg-sky-700 data-hover:bg-sky-500"
+            className="rounded bg-sky-600 px-4 py-2 my-10 text-sm text-white data-active:bg-sky-700 data-hover:bg-sky-500 hover:cursor-pointer"
             onClick={ () => {
               cancelLoading();
               onSkip();
