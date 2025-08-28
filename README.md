@@ -16,6 +16,11 @@ the flexibility to call out order numbers in more human-like, varied ways.
 	7.	Redis KV DB will be used to save money.
 	8.	Authentication will be omitted.
 
+## Initial Concept Diagram
+### Original Link: [Miro](https://miro.com/app/live-embed/uXjVJQbXx44=/?embedMode=view_only_without_ui&moveToViewport=-5177%2C-1775%2C5706%2C5213&embedId=944691158758)
+
+![Diagram](./docs/images/diagram.png)
+
 ## Next.js Installation (using Typescript)
 [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
 ```bash
@@ -40,6 +45,7 @@ Create a project on Vercel and link it to the repository.
 vercel login
 vercel link
 vercel env pull .env.development.local
+cp .env.development.local .env
 ```
 
 ### Vercel CI/CD Setting
