@@ -140,6 +140,7 @@ export function Dashboard({orderGroup}: DashboardProps) {
         <div className="flex justify-end">
           <Button
             className={cn("rounded bg-sky-600 px-4 py-2 text-sm text-white",
+              "hover:cursor-pointer",
               "data-active:bg-sky-700 data-hover:bg-sky-500",
               "dark:bg-sky-500 dark:data-active:bg-sky-600 dark:data-hover:bg-sky-400"
             )}
